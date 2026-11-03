@@ -17,6 +17,11 @@ async function main() {
   const phone = normalizePhone(process.env.OWNER_PHONE ?? "");
   const password = process.env.OWNER_PASSWORD ?? "";
   if (!name || !phone || password.length < MIN_PASSWORD) {
+    // Preview builds are for checking changes, so only the live site insists on an owner.
+    if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+      console.log("No owner details for this preview build, so no owner was created.");
+      return;
+    }
     throw new Error(`Set OWNER_NAME, OWNER_PHONE (a Ghana number) and OWNER_PASSWORD (at least ${MIN_PASSWORD} characters).`);
   }
 
