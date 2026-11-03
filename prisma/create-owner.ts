@@ -16,7 +16,14 @@ async function main() {
   const name = process.env.OWNER_NAME?.trim();
   const phone = normalizePhone(process.env.OWNER_PHONE ?? "");
   const password = process.env.OWNER_PASSWORD ?? "";
-  if (!name || !phone || password.length < MIN_PASSWORD) {
+  // Names which setting is wrong without ever printing a value.
+  const problems = [
+    !name && "OWNER_NAME is empty",
+    !phone && "OWNER_PHONE is not a Ghana number such as 0241234567",
+    password.length < MIN_PASSWORD && `OWNER_PASSWORD is shorter than ${MIN_PASSWORD} characters (it has ${password.length})`,
+  ].filter(Boolean);
+  if (problems.length) console.error(`Owner setup: ${problems.join("; ")}.`);
+  if (problems.length) {
     // Preview builds are for checking changes, so only the live site insists on an owner.
     if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
       console.log("No owner details for this preview build, so no owner was created.");
