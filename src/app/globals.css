@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: 244 242 234;
+  --surface: 255 255 255;
+  --raised: 250 248 242;
+  --line: 226 222 208;
+  --ink: 24 36 30;
+  --ink-soft: 82 96 88;
+  --ink-faint: 122 134 126;
+  --brand: 13 92 69;
+  --brand-soft: 220 236 228;
+  --brand-ink: 255 255 255;
+  --yolk: 245 179 1;
+  --yolk-soft: 253 240 200;
+  --yolk-ink: 58 40 0;
+  --good: 22 122 80;
+  --good-soft: 217 240 228;
+  --warn: 158 98 0;
+  --warn-soft: 252 236 200;
+  --bad: 184 51 37;
+  --bad-soft: 250 225 220;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --canvas: 13 20 17;
+  --surface: 22 31 27;
+  --raised: 30 41 36;
+  --line: 45 58 51;
+  --ink: 236 240 232;
+  --ink-soft: 168 180 172;
+  --ink-faint: 128 142 134;
+  --brand: 72 196 150;
+  --brand-soft: 24 56 44;
+  --brand-ink: 6 30 22;
+  --yolk: 250 196 50;
+  --yolk-soft: 62 48 12;
+  --yolk-ink: 44 30 0;
+  --good: 88 210 158;
+  --good-soft: 22 56 42;
+  --warn: 245 190 90;
+  --warn-soft: 60 44 14;
+  --bad: 245 130 112;
+  --bad-soft: 66 28 22;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: rgb(var(--canvas));
+  color: rgb(var(--ink));
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+@layer components {
+  .card {
+    /* min-w-0 keeps a wide table scrolling inside its card instead of stretching the page. */
+    @apply min-w-0 rounded-3xl border border-line bg-surface p-5 shadow-card;
+  }
+  .btn {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold transition active:scale-[.98] disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-brand-ink hover:opacity-90;
+  }
+  .btn-yolk {
+    @apply btn bg-yolk text-yolk-ink hover:opacity-90;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-ink hover:bg-raised;
+  }
+  .btn-danger {
+    @apply btn bg-bad-soft text-bad hover:opacity-90;
+  }
+  .input {
+    @apply min-h-12 w-full rounded-2xl border border-line bg-raised px-4 text-base text-ink outline-none placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink-soft;
+  }
+  .table-wrap {
+    @apply -mx-5 overflow-x-auto px-5;
+  }
+  .data-table {
+    @apply w-full min-w-[520px] text-left text-sm;
+  }
+  .data-table th {
+    @apply border-b border-line pb-2 pr-4 font-medium text-ink-faint;
+  }
+  .data-table td {
+    @apply border-b border-line/60 py-3 pr-4 align-top;
+  }
+  .data-table tr:last-child td {
+    @apply border-b-0;
+  }
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

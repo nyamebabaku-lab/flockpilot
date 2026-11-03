@@ -1,0 +1,43 @@
+{
+  "name": "flockpilot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Poultry farm management system",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "test:roles": "node --env-file=.env tests/role-check.mjs",
+    "setup": "prisma db push && tsx prisma/seed.ts",
+    "postinstall": "prisma generate",
+    "vercel-build": "node scripts/use-postgres.mjs && prisma generate && prisma db push --skip-generate && tsx prisma/create-owner.ts && next build"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "dexie": "^4.0.11",
+    "jose": "^6.2.14",
+    "lucide-react": "^1.65.0",
+    "next": "^15.5.28",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.6.2",
+    "postcss": "^8.5.32",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

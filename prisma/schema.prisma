@@ -1,0 +1,434 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Conventions, which also keep the later move to PostgreSQL small:
+//   money is whole pesewas, stock quantities are thousandths of a unit,
+//   weights are grams, calendar days are "YYYY-MM-DD" strings,
+//   and fixed choices are plain strings listed in src/lib/constants.ts.
+
+model Settings {
+  id                     String @id @default("main")
+  businessName           String @default("FlockPilot")
+  dailyWithdrawalLimit   Int    @default(2000000)
+  ssnitEmployeeBps       Int    @default(550)
+  ssnitEmployerBps       Int    @default(1300)
+  payeBandsJson          String @default("[]")
+  henDayTargetBps        Int    @default(8000)
+  walletVersion          Int    @default(0)
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String   @unique
+  passwordHash String
+  role         String
+  jobTitle     String?
+  monthlyPay   Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  sites          SiteAssignment[]
+  tasks          Task[]           @relation("assignee")
+  attendance     Attendance[]
+  payoutAccounts PayoutAccount[]
+  advances       Advance[]
+  payslips       Payslip[]
+  auditLogs      AuditLog[]
+}
+
+model Farm {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  location  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  houses  House[]
+  staff   SiteAssignment[]
+  items   InventoryItem[]
+  tasks   Task[]
+  orders  Order[]
+  expenses Expense[]
+}
+
+model SiteAssignment {
+  userId String
+  farmId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farm   Farm   @relation(fields: [farmId], references: [id], onDelete: Cascade)
+
+  @@id([userId, farmId])
+}
+
+model House {
+  id       String @id @default(cuid())
+  farmId   String
+  name     String
+  capacity Int    @default(0)
+  farm     Farm   @relation(fields: [farmId], references: [id])
+  flocks   Flock[]
+
+  @@unique([farmId, name])
+}
+
+model Flock {
+  id           String   @id @default(cuid())
+  houseId      String
+  name         String   @unique
+  birdType     String
+  breed        String?
+  startDate    String
+  ageAtStart   Int      @default(0)
+  startCount   Int
+  costPerBird  Int      @default(0)
+  status       String   @default("ACTIVE")
+  closedOn     String?
+  closeReason  String?
+  createdAt    DateTime @default(now())
+
+  house      House            @relation(fields: [houseId], references: [id])
+  eggs       EggRecord[]
+  feed       FeedRecord[]
+  mortality  MortalityRecord[]
+  weights    WeightRecord[]
+  movements  BirdMovement[]
+  doses      VaccinationDose[]
+  treatments Treatment[]
+  expenses   Expense[]
+  orderLines OrderLine[]
+}
+
+model EggRecord {
+  id           String   @id @default(cuid())
+  flockId      String
+  date         String
+  large        Int      @default(0)
+  medium       Int      @default(0)
+  small        Int      @default(0)
+  broken       Int      @default(0)
+  recordedById String?
+  createdAt    DateTime @default(now())
+  flock        Flock    @relation(fields: [flockId], references: [id])
+
+  @@index([flockId, date])
+}
+
+model FeedRecord {
+  id           String   @id @default(cuid())
+  flockId      String
+  itemId       String
+  date         String
+  quantity     Int
+  unitCost     Int      @default(0)
+  recordedById String?
+  createdAt    DateTime @default(now())
+  flock        Flock    @relation(fields: [flockId], references: [id])
+  item         InventoryItem @relation(fields: [itemId], references: [id])
+
+  @@index([flockId, date])
+}
+
+model MortalityRecord {
+  id           String   @id @default(cuid())
+  flockId      String
+  date         String
+  count        Int
+  cause        String
+  note         String?
+  recordedById String?
+  createdAt    DateTime @default(now())
+  flock        Flock    @relation(fields: [flockId], references: [id])
+
+  @@index([flockId, date])
+}
+
+model WeightRecord {
+  id            String   @id @default(cuid())
+  flockId       String
+  date          String
+  sampleSize    Int
+  averageGrams  Int
+  uniformityPct Int?
+  recordedById  String?
+  createdAt     DateTime @default(now())
+  flock         Flock    @relation(fields: [flockId], references: [id])
+
+  @@index([flockId, date])
+}
+
+model BirdMovement {
+  id        String   @id @default(cuid())
+  flockId   String
+  date      String
+  kind      String
+  count     Int
+  note      String?
+  createdAt DateTime @default(now())
+  flock     Flock    @relation(fields: [flockId], references: [id])
+
+  @@index([flockId])
+}
+
+model VaccinationTemplate {
+  id       String @id @default(cuid())
+  birdType String
+  dayOfAge Int
+  vaccine  String
+  route    String
+}
+
+model VaccinationDose {
+  id        String  @id @default(cuid())
+  flockId   String
+  vaccine   String
+  route     String
+  dueDate   String
+  givenOn   String?
+  givenById String?
+  batchNo   String?
+  flock     Flock   @relation(fields: [flockId], references: [id])
+
+  @@index([dueDate])
+}
+
+model Treatment {
+  id            String  @id @default(cuid())
+  flockId       String
+  date          String
+  medicine      String
+  reason        String
+  withdrawalDays Int    @default(0)
+  note          String?
+  flock         Flock   @relation(fields: [flockId], references: [id])
+}
+
+model Supplier {
+  id        String          @id @default(cuid())
+  name      String          @unique
+  phone     String?
+  note      String?
+  movements StockMovement[]
+}
+
+model InventoryItem {
+  id         String  @id @default(cuid())
+  farmId     String
+  name       String
+  category   String
+  unit       String
+  lowLevel   Int     @default(0)
+  unitCost   Int     @default(0)
+  expiresOn  String?
+  active     Boolean @default(true)
+
+  farm       Farm            @relation(fields: [farmId], references: [id])
+  movements  StockMovement[]
+  feedRecords FeedRecord[]
+
+  @@unique([farmId, name])
+}
+
+model StockMovement {
+  id         String    @id @default(cuid())
+  itemId     String
+  date       String
+  kind       String
+  delta      Int
+  unitCost   Int       @default(0)
+  supplierId String?
+  note       String?
+  createdAt  DateTime  @default(now())
+  item       InventoryItem @relation(fields: [itemId], references: [id])
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@index([itemId])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  farmId      String
+  assigneeId  String?
+  title       String
+  dueDate     String
+  status      String   @default("OPEN")
+  completedOn String?
+  createdAt   DateTime @default(now())
+  farm        Farm     @relation(fields: [farmId], references: [id])
+  assignee    User?    @relation("assignee", fields: [assigneeId], references: [id])
+}
+
+model Attendance {
+  id     String @id @default(cuid())
+  userId String
+  date   String
+  status String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+}
+
+model Customer {
+  id     String  @id @default(cuid())
+  name   String
+  phone  String?
+  email  String?
+  orders Order[]
+}
+
+model Order {
+  id         String   @id @default(cuid())
+  number     Int      @unique
+  payToken   String   @unique
+  customerId String
+  farmId     String
+  date       String
+  status     String   @default("OPEN")
+  total      Int
+  paid       Int      @default(0)
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id])
+  farm       Farm     @relation(fields: [farmId], references: [id])
+  lines      OrderLine[]
+  payments   Payment[]
+}
+
+model OrderLine {
+  id          String  @id @default(cuid())
+  orderId     String
+  kind        String
+  description String
+  quantity    Int
+  unitPrice   Int
+  total       Int
+  flockId     String?
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  flock       Flock?  @relation(fields: [flockId], references: [id])
+}
+
+model Payment {
+  id             String    @id @default(cuid())
+  reference      String    @unique
+  idempotencyKey String?   @unique
+  orderId        String
+  amount         Int
+  method         String
+  status         String    @default("PENDING")
+  providerFee    Int       @default(0)
+  paidAt         DateTime?
+  note           String?
+  createdAt      DateTime  @default(now())
+  order          Order     @relation(fields: [orderId], references: [id])
+}
+
+model Expense {
+  id          String  @id @default(cuid())
+  farmId      String
+  flockId     String?
+  date        String
+  category    String
+  description String
+  amount      Int
+  createdAt   DateTime @default(now())
+  farm        Farm    @relation(fields: [farmId], references: [id])
+  flock       Flock?  @relation(fields: [flockId], references: [id])
+}
+
+model LedgerEntry {
+  id        String   @id @default(cuid())
+  kind      String
+  amount    Int
+  dedupeKey String   @unique
+  memo      String
+  createdAt DateTime @default(now())
+}
+
+model PayoutAccount {
+  id            String  @id @default(cuid())
+  userId        String
+  kind          String
+  provider      String
+  accountName   String
+  accountNumber String
+  recipientCode String?
+  user          User    @relation(fields: [userId], references: [id])
+  withdrawals   Withdrawal[]
+}
+
+model Withdrawal {
+  id              String    @id @default(cuid())
+  reference       String    @unique
+  idempotencyKey  String    @unique
+  payoutAccountId String
+  amount          Int
+  date            String
+  status          String    @default("PROCESSING")
+  failureReason   String?
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+  payoutAccount   PayoutAccount @relation(fields: [payoutAccountId], references: [id])
+}
+
+model Advance {
+  id         String  @id @default(cuid())
+  userId     String
+  date       String
+  amount     Int
+  note       String?
+  payslipId  String?
+  user       User    @relation(fields: [userId], references: [id])
+}
+
+model PayrollRun {
+  id           String    @id @default(cuid())
+  period       String    @unique
+  status       String    @default("DRAFT")
+  preparedById String
+  approvedById String?
+  approvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  payslips     Payslip[]
+}
+
+model Payslip {
+  id            String  @id @default(cuid())
+  runId         String
+  userId        String
+  gross         Int
+  advances      Int     @default(0)
+  ssnit         Int     @default(0)
+  ssnitEmployer Int     @default(0)
+  paye          Int     @default(0)
+  net           Int
+  reference     String  @unique
+  status        String  @default("DRAFT")
+  failureReason String?
+  run           PayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  user          User    @relation(fields: [userId], references: [id])
+
+  @@unique([runId, userId])
+}
+
+model SyncReceipt {
+  clientId  String   @id
+  userId    String
+  type      String
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  detail    String
+  createdAt DateTime @default(now())
+  actor     User?    @relation(fields: [actorId], references: [id])
+
+  @@index([createdAt])
+}
