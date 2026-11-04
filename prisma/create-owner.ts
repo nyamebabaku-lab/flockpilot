@@ -23,7 +23,7 @@ async function main() {
     password.length < MIN_PASSWORD && `OWNER_PASSWORD is shorter than ${MIN_PASSWORD} characters (it has ${password.length})`,
   ].filter(Boolean);
   if (problems.length) console.error(`Owner setup: ${problems.join("; ")}.`);
-  if (problems.length) {
+  if (!name || !phone || password.length < MIN_PASSWORD) {
     // Preview builds are for checking changes, so only the live site insists on an owner.
     if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
       console.log("No owner details for this preview build, so no owner was created.");
